@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  username      String?   @unique
+  password      String?
+  status        Status    @default(OFFLINE)
+  image         String?
+  socketId      String?   @unique
+  message       Message[] @relation("sendMessage")
+  account       Account[]
+  roomId        String[]  @db.ObjectId
+  rooms         Rooms[]   @relation(fields: [roomId], references: [id])
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+}
+
+enum Status {
+  ONLINE
+  OFFLINE
+}
+
+// Rooms 
+model Rooms {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  // author String[] @db.ObjectId admin/modaretor in this message
+  memberIds  String[]  @db.ObjectId
+  members    User[]    @relation(fields: [memberIds], references: [id])
+  message    Message[]
+  isGroup    Boolean   @default(false)
+  name       String?
+  icon       String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+}
+
+model Message {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId   String   @db.ObjectId
+  roomId     String   @db.ObjectId
+  sender     User     @relation("sendMessage", fields: [senderId], references: [id])
+  room       Rooms    @relation(fields: [roomId], references: [id])
+  message    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
